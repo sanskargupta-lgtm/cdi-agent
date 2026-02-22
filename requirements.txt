@@ -1,0 +1,13 @@
+streamlit==1.54.0
+databricks-sdk==0.53.0
+prettytable
+python-dotenv
+pandas
+numpy
+matplotlib 
+kafka-python
+fpdf2
+requests
+plotly
+mlflow
+redis

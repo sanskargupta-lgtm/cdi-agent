@@ -1,0 +1,7 @@
+resources:
+  apps:
+    project_d_sbx:
+      name: project-d-sbx
+      source_code_path: "."   # deploys everything from repo root
+      description: "Managed by Asset Bundles"
+      # The CLI has already linked/bound this to your existing workspace app

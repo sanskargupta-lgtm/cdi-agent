@@ -1,0 +1,44 @@
+name: Deploy via Databricks Apps
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set deployment environment
+        id: set-env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "env_name=prod" >> $GITHUB_OUTPUT
+            echo "app_name=cdi-agent" >> $GITHUB_OUTPUT
+            echo "workspace_path=/Workspace/Users/sanskar.gupta@crunchyroll.com/cdi-agent" >> $GITHUB_OUTPUT
+          else
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "app_name=cdi-agent-dev" >> $GITHUB_OUTPUT
+            echo "workspace_path=/Workspace/Users/sanskar.gupta@crunchyroll.com/cdi-agent-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Cache .databricks state
+        uses: actions/cache@v3
+        with:
+          path: .databricks
+          key: ${{ runner.os }}-databricks-bundle-${{ steps.set-env.outputs.env_name }}-${{ github.ref }}
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+        with:
+          version: "0.288.0"
+
+      - name: Validate and Deploy
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          databricks sync . ${{ steps.set-env.outputs.workspace_path }}
+          databricks apps deploy ${{ steps.set-env.outputs.app_name }} --source-code-path ${{ steps.set-env.outputs.workspace_path }}
