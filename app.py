@@ -225,7 +225,7 @@ print(f"User token: {user_token[:20] + '...' if user_token else 'None'}")
 
 # Get agent endpoint configuration from environment
 AGENT_ENDPOINT_NAME = os.getenv("AGENT_ENDPOINT_NAME", "")
-AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/multi_agent_genie_20feb_v2/invocations")
+AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/multi_agent_genie_pg/invocations")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "<YOUR_DATABRICKS_SERVICE_PRINCIPAL_TOKEN>")
 
 ENV = os.getenv("ENV", "prod")
