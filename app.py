@@ -835,12 +835,7 @@ with st.sidebar:
 
     _render_chats(past_chats)
 
-    st.markdown('<div style="margin-top:1.5rem;"></div>', unsafe_allow_html=True)
-    is_processing = st.session_state.get("is_processing", False)
-    if st.button("🗑️ Clear Chat", use_container_width=True, disabled=is_processing):
-        st.session_state.messages = []
-        st.session_state.pop("past_chats_cache", None)
-        st.rerun()
+
 
 # Header with Crunchyroll logo
 logo_path = os.path.join(os.path.dirname(__file__), "assets", "CR-LOGO-RGB-HORIZONTAL-REGISTERED_Orange.png")
