@@ -13,6 +13,7 @@ import numpy as np
 from dotenv import load_dotenv
 from databricks.sdk import WorkspaceClient
 from agent_endpoint_client import AgentEndpointClient
+from pdf_export import create_pdf_download_button
 
 # Load environment variables
 load_dotenv()
@@ -193,6 +194,7 @@ def get_user_email():
 def get_user_token():
     """
     Retrieves the X-Forwarded-Access-Token from the Streamlit context headers.
+    Falls back to environment variable for local development.
     
     Returns:
         str: The user's access token or None if not found.
@@ -211,11 +213,22 @@ def get_user_token():
             headers.get("Authorization") or
             headers.get("authorization")
         )
-        print(f"token {user_token}")
+        
+        # Fallback to environment variable for local development
+        if not user_token:
+            user_token = os.getenv("DATABRICKS_TOKEN")
+            if user_token:
+                print(f"Using token from DATABRICKS_TOKEN environment variable")
+        
+        print(f"token {user_token[:20] + '...' if user_token else 'None'}")
         return user_token
     except Exception as e:
         print(f"Error getting user token: {e}")
-        return None
+        # Fallback to environment variable
+        token = os.getenv("DATABRICKS_TOKEN")
+        if token:
+            print(f"Using token from DATABRICKS_TOKEN environment variable (after error)")
+        return token
 
 # Get user email for session tracking
 user_email = get_user_email()
@@ -225,7 +238,15 @@ print(f"User token: {user_token[:20] + '...' if user_token else 'None'}")
 
 # Get agent endpoint configuration from environment
 AGENT_ENDPOINT_NAME = os.getenv("AGENT_ENDPOINT_NAME", "")
-AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/multi_agent_genie_pg/invocations")
+# Support local endpoint for development
+USE_LOCAL_ENDPOINT = os.getenv("USE_LOCAL_ENDPOINT", "false").lower() == "true"
+if USE_LOCAL_ENDPOINT:
+    AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "http://localhost:8000/invocations")
+    print(f"[CONFIG] Using LOCAL agent endpoint: {AGENT_ENDPOINT_URL}")
+else:
+    AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_28022026/invocations")
+    print(f"[CONFIG] Using REMOTE agent endpoint: {AGENT_ENDPOINT_URL}")
+
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "<YOUR_DATABRICKS_SERVICE_PRINCIPAL_TOKEN>")
 
 ENV = os.getenv("ENV", "prod")
@@ -672,27 +693,50 @@ def render_trace(trace_data: dict):
     """Render a trace event in the UI with animated styling"""
     step = trace_data.get("step", "Processing")
     status = trace_data.get("status", "in_progress")
+    message = trace_data.get("message", "")
     details = trace_data.get("details", "")
     
-    # Choose icon and CSS class based on status
-    if status == "in_progress":
-        icon = "⏳"
-        css_class = ""
-    elif status == "completed":
+    # Use message if available, otherwise use details
+    display_text = message if message else details
+    
+    # Choose icon based on step and status
+    if status == "completed":
         icon = "✅"
         css_class = "trace-completed"
+    elif status == "in_progress":
+        # Choose icon based on step
+        if step == "init":
+            icon = "🧠"
+        elif step == "planning":
+            icon = "🔍"
+        elif step == "execution":
+            icon = "⚙️"
+        elif step == "synthesis":
+            icon = "🔗"
+        else:
+            icon = "⏳"
+        css_class = ""
     else:
         icon = "❌"
         css_class = "trace-error"
+    
+    # Map step names to display names
+    step_names = {
+        "init": "Initializing",
+        "planning": "Planning",
+        "execution": "Executing",
+        "synthesis": "Synthesizing"
+    }
+    display_step = step_names.get(step, step.title())
     
     # Render trace HTML
     trace_html = f"""
     <div class="trace-container {css_class}">
         <div class="trace-step">
             <span class="trace-icon">{icon}</span>
-            <strong>{step}</strong>
+            <strong>{display_step}</strong>
         </div>
-        {f'<div class="trace-details">{details}</div>' if details else ''}
+        {f'<div class="trace-details">{display_text}</div>' if display_text else ''}
     </div>
     """
     
@@ -978,6 +1022,56 @@ else:
                                 )
                         except Exception as e:
                             print(f"Error displaying chart: {e}")
+            
+            # Add PDF download button for assistant messages (skip welcome message)
+            if message["role"] == "assistant" and idx > 0 and message.get("content"):
+                # Add separator
+                st.markdown("---")
+                
+                # Get the corresponding user query (previous message)
+                user_query = ""
+                if idx > 0 and st.session_state.messages[idx-1].get("role") == "user":
+                    user_query = st.session_state.messages[idx-1].get("content", "")
+                
+                # Generate PDF download button
+                try:
+                    # Get conversation history up to this point
+                    conversation_history = []
+                    for i in range(0, idx-1, 2):
+                        if (i < len(st.session_state.messages) and 
+                            st.session_state.messages[i].get("role") == "user" and
+                            i+1 < len(st.session_state.messages)):
+                            conversation_history.append({
+                                "query": st.session_state.messages[i].get("content", ""),
+                                "answer": st.session_state.messages[i+1].get("content", "")
+                            })
+                    
+                    pdf_bytes = create_pdf_download_button(
+                        query=user_query,
+                        response_text=message.get("content", ""),
+                        charts=message.get("charts"),
+                        table_data=message.get("table_data"),
+                        sql_query=message.get("sql") if ENV == "dev" else None,
+                        user_email=user_email,
+                        conversation_history=conversation_history
+                    )
+                    
+                    timestamp = time.strftime("%Y%m%d_%H%M%S")
+                    filename = f"agent_report_{timestamp}.pdf"
+                    
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.download_button(
+                            label="📄 Download Report as PDF",
+                            data=pdf_bytes,
+                            file_name=filename,
+                            mime="application/pdf",
+                            help="Download comprehensive report with insights, charts, and conversation history",
+                            use_container_width=True,
+                            key=f"download_pdf_{idx}"
+                        )
+                except Exception as e:
+                    print(f"[PDF] Error generating PDF for message {idx}: {e}")
 
     # Chat input
     if prompt := st.chat_input("What is your question?"):
@@ -1142,7 +1236,7 @@ else:
                             except Exception as e:
                                 st.error(f"Error displaying table: {e}")
                     
-                    # Store in session state
+                    # Store in session state (download button will be shown after rerun in message history)
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": response_text,

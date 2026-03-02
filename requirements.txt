@@ -11,3 +11,9 @@ requests
 plotly
 mlflow
 redis
+fastapi
+uvicorn[standard]
+langgraph
+openai
+reportlab
+kaleido

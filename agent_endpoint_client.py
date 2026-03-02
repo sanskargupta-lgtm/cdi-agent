@@ -108,6 +108,8 @@ class AgentEndpointClient:
             
             # Process Server-Sent Events (SSE) stream
             print(f"[AgentClient] Processing SSE stream")
+            traces_received = []
+            
             for line in response.iter_lines():
                 if line:
                     try:
@@ -129,23 +131,50 @@ class AgentEndpointClient:
                             try:
                                 chunk_data = json.loads(json_str)
                                 
+                                # Handle trace events
+                                if chunk_data.get("type") == "trace":
+                                    trace_step = chunk_data.get("step", "unknown")
+                                    trace_msg = chunk_data.get("message", "")
+                                    print(f"[AgentClient] ✓ Trace [{trace_step}]: {trace_msg}")
+                                    traces_received.append(chunk_data)
+                                    
+                                    # Yield trace event
+                                    yield json.dumps({
+                                        "type": "trace",
+                                        "step": trace_step,
+                                        "message": trace_msg,
+                                        "status": "in_progress"
+                                    })
+                                    time.sleep(0.1)  # Small delay for visual effect
+                                
                                 # Extract delta from response.output_text.delta events
-                                if chunk_data.get("type") == "response.output_text.delta":
+                                elif chunk_data.get("type") == "response.output_text.delta":
                                     delta = chunk_data.get("delta", "")
                                     if delta:
                                         try:
                                             # Parse delta as JSON
                                             obj = json.loads(delta)
                                             
-                                            # Yield traces
+                                            # Check if it's a trace embedded in delta
                                             if obj.get("type") == "trace":
-                                                print(f"[AgentClient] Trace: {obj.get('step')} - {obj.get('status')}")
-                                                yield json.dumps(obj)
-                                                time.sleep(0.1)  # Small delay for visual effect
+                                                trace_step = obj.get("step", "unknown")
+                                                trace_msg = obj.get("message", "")
+                                                print(f"[AgentClient] ✓ Trace (delta) [{trace_step}]: {trace_msg}")
+                                                traces_received.append(obj)
+                                                
+                                                yield json.dumps({
+                                                    "type": "trace",
+                                                    "step": trace_step,
+                                                    "message": trace_msg,
+                                                    "status": "in_progress"
+                                                })
+                                                time.sleep(0.1)
                                             
                                             # Yield final response
                                             elif "response" in obj:
-                                                print(f"[AgentClient] Final response received")
+                                                print(f"[AgentClient] Final response received ({len(traces_received)} traces)")
+                                                # Add traces to response
+                                                obj["traces"] = traces_received
                                                 yield json.dumps(obj)
                                         
                                         except json.JSONDecodeError:
