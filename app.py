@@ -240,12 +240,17 @@ print(f"User token: {user_token[:20] + '...' if user_token else 'None'}")
 AGENT_ENDPOINT_NAME = os.getenv("AGENT_ENDPOINT_NAME", "")
 # Support local endpoint for development
 USE_LOCAL_ENDPOINT = os.getenv("USE_LOCAL_ENDPOINT", "false").lower() == "true"
+
+# Two mode endpoints
+CHAT_ENDPOINT_URL = "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/multi_agent_genie_20feb_v2/invocations"
+AGENT_ENDPOINT_URL = "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_06032026/invocations"
+
 if USE_LOCAL_ENDPOINT:
-    AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "http://localhost:8000/invocations")
-    print(f"[CONFIG] Using LOCAL agent endpoint: {AGENT_ENDPOINT_URL}")
+    ACTIVE_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "http://localhost:8000/invocations")
+    print(f"[CONFIG] Using LOCAL agent endpoint: {ACTIVE_ENDPOINT_URL}")
 else:
-    AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_06032026/invocations")
-    print(f"[CONFIG] Using REMOTE agent endpoint: {AGENT_ENDPOINT_URL}")
+    ACTIVE_ENDPOINT_URL = CHAT_ENDPOINT_URL  # Default to Chat mode
+    print(f"[CONFIG] Default endpoint (Chat mode): {ACTIVE_ENDPOINT_URL}")
 
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "<YOUR_DATABRICKS_SERVICE_PRINCIPAL_TOKEN>")
 
@@ -257,14 +262,14 @@ try:
     # Check if we should use direct HTTP access or MLflow Deployments
     some_token = get_user_token()
     print(f"Retrieved user token for agent client initialization: {some_token[:20] + '...' if some_token else 'Not found'}")
-    if AGENT_ENDPOINT_URL and DATABRICKS_TOKEN:
+    if ACTIVE_ENDPOINT_URL and DATABRICKS_TOKEN:
         # Use direct HTTP access
         agent = AgentEndpointClient(
-            endpoint_url=AGENT_ENDPOINT_URL,
+            endpoint_url=ACTIVE_ENDPOINT_URL,
             access_token=some_token
         )
         client_initialized = True
-        print(f"✅ Connected to agent endpoint via direct HTTP: {AGENT_ENDPOINT_URL}")
+        print(f"✅ Connected to agent endpoint via direct HTTP: {ACTIVE_ENDPOINT_URL}")
     else:
         # Fall back to MLflow Deployments
         workspace_client = WorkspaceClient()
@@ -628,6 +633,47 @@ st.markdown(
         border-top-color: #F47521 !important;
     }
     
+    
+    /* Sidebar mode selector */
+    .sidebar-mode-selector {
+        margin: 0 0 16px 0;
+        padding: 0;
+    }
+    .sidebar-mode-selector select {
+        background: #1a1a1a;
+        color: #ffffff;
+        border: 1px solid #444444;
+        border-radius: 0px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-family: 'Lato', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        width: 100%;
+        height: 40px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23999' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+    }
+    .sidebar-mode-selector select:hover {
+        border-color: #666666;
+        background: #222222;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23999' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+    }
+    .sidebar-mode-selector select:focus {
+        border-color: #F47521;
+    }
+    .sidebar-mode-selector select option {
+        background: #1a1a1a;
+        color: #ffffff;
+    }
+
     /* Trace event styling - compact, sharp */
     .trace-container {
         margin: 3px 0;
@@ -817,6 +863,23 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+
+    # Mode selector at top of sidebar
+    chat_mode = st.session_state.get("chat_mode", "chat")
+    chat_sel = 'selected' if chat_mode == 'chat' else ''
+    agent_sel = 'selected' if chat_mode == 'agent' else ''
+    st.markdown(f'''
+    <div class="sidebar-mode-selector">
+        <select onchange="
+            const url = new URL(window.parent.location);
+            url.searchParams.set('mode', this.value);
+            window.parent.location.href = url.toString();
+        ">
+            <option value="chat" {chat_sel}>💬 Chat</option>
+            <option value="agent" {agent_sel}>✦ Agent (Experimental)</option>
+        </select>
+    </div>
+    ''', unsafe_allow_html=True)
 
     # Header
     st.markdown('<div class="past-chats-header">Past chats</div>', unsafe_allow_html=True)
@@ -1029,48 +1092,68 @@ else:
                 if idx > 0 and st.session_state.messages[idx-1].get("role") == "user":
                     user_query = st.session_state.messages[idx-1].get("content", "")
                 
-                # Generate PDF download button
-                try:
-                    # Get conversation history up to this point
-                    conversation_history = []
-                    for i in range(0, idx-1, 2):
-                        if (i < len(st.session_state.messages) and 
-                            st.session_state.messages[i].get("role") == "user" and
-                            i+1 < len(st.session_state.messages)):
-                            conversation_history.append({
-                                "query": st.session_state.messages[i].get("content", ""),
-                                "answer": st.session_state.messages[i+1].get("content", "")
-                            })
-                    
-                    pdf_bytes = create_pdf_download_button(
-                        query=user_query,
-                        response_text=message.get("content", ""),
-                        charts=message.get("charts"),
-                        table_data=message.get("table_data"),
-                        sql_query=message.get("sql") if ENV == "dev" else None,
-                        user_email=user_email,
-                        conversation_history=conversation_history
-                    )
-                    
-                    timestamp = time.strftime("%Y%m%d_%H%M%S")
-                    filename = f"agent_report_{timestamp}.pdf"
-                    
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        st.download_button(
-                            label="📄 Download Report as PDF",
-                            data=pdf_bytes,
-                            file_name=filename,
-                            mime="application/pdf",
-                            help="Download comprehensive report with insights, charts, and conversation history",
-                            use_container_width=True,
-                            key=f"download_pdf_{idx}"
+                # Generate PDF download button (Agent mode only)
+                if st.session_state.get("chat_mode", "chat") == "agent":
+                    try:
+                        # Get conversation history up to this point
+                        conversation_history = []
+                        for i in range(0, idx-1, 2):
+                            if (i < len(st.session_state.messages) and 
+                                st.session_state.messages[i].get("role") == "user" and
+                                i+1 < len(st.session_state.messages)):
+                                conversation_history.append({
+                                    "query": st.session_state.messages[i].get("content", ""),
+                                    "answer": st.session_state.messages[i+1].get("content", "")
+                                })
+                        
+                        pdf_bytes = create_pdf_download_button(
+                            query=user_query,
+                            response_text=message.get("content", ""),
+                            charts=message.get("charts"),
+                            table_data=message.get("table_data"),
+                            sql_query=message.get("sql") if ENV == "dev" else None,
+                            user_email=user_email,
+                            conversation_history=conversation_history
                         )
-                except Exception as e:
-                    print(f"[PDF] Error generating PDF for message {idx}: {e}")
+                        
+                        timestamp = time.strftime("%Y%m%d_%H%M%S")
+                        filename = f"agent_report_{timestamp}.pdf"
+                        
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col2:
+                            st.download_button(
+                                label="📄 Download Report as PDF",
+                                data=pdf_bytes,
+                                file_name=filename,
+                                mime="application/pdf",
+                                help="Download comprehensive report with insights, charts, and conversation history",
+                                use_container_width=True,
+                                key=f"download_pdf_{idx}"
+                            )
+                    except Exception as e:
+                        print(f"[PDF] Error generating PDF for message {idx}: {e}")
 
+    # Mode toggle (Chat / Agent)
+    if "chat_mode" not in st.session_state:
+        st.session_state.chat_mode = "chat"  # Default: chat
+    
+    # Read mode from query params (set by JS in the sidebar select)
+    qp = st.query_params
+    if "mode" in qp:
+        new_mode = qp["mode"]
+        if new_mode in ("chat", "agent") and new_mode != st.session_state.chat_mode:
+            st.session_state.chat_mode = new_mode
+    
+    # Switch endpoint based on mode
+    is_agent_mode = st.session_state.chat_mode == "agent"
+    if not USE_LOCAL_ENDPOINT and client_initialized:
+        target_url = AGENT_ENDPOINT_URL if is_agent_mode else CHAT_ENDPOINT_URL
+        if agent.endpoint_url != target_url:
+            agent.endpoint_url = target_url
+            print(f"[CONFIG] Switched to {'Agent' if is_agent_mode else 'Chat'} mode endpoint: {target_url}")
+    
     # Chat input
-    if prompt := st.chat_input("What is your question?"):
+    if prompt := st.chat_input("Ask your question..."):
         print(f"[UI] User entered prompt: {prompt}")
         print(f"[UI] Current messages count: {len(st.session_state.messages)}")
         
