@@ -145,7 +145,7 @@ class AgentEndpointClient:
                                         "message": trace_msg,
                                         "status": "in_progress"
                                     })
-                                    time.sleep(0.1)  # Small delay for visual effect
+                                    pass  # No delay
                                 
                                 # Extract delta from response.output_text.delta events
                                 elif chunk_data.get("type") == "response.output_text.delta":
@@ -168,7 +168,7 @@ class AgentEndpointClient:
                                                     "message": trace_msg,
                                                     "status": "in_progress"
                                                 })
-                                                time.sleep(0.1)
+                                                pass  # No delay
                                             
                                             # Yield final response
                                             elif "response" in obj:

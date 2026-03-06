@@ -244,7 +244,7 @@ if USE_LOCAL_ENDPOINT:
     AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "http://localhost:8000/invocations")
     print(f"[CONFIG] Using LOCAL agent endpoint: {AGENT_ENDPOINT_URL}")
 else:
-    AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_28022026/invocations")
+    AGENT_ENDPOINT_URL = os.getenv("AGENT_ENDPOINT_URL", "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_06032026/invocations")
     print(f"[CONFIG] Using REMOTE agent endpoint: {AGENT_ENDPOINT_URL}")
 
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "<YOUR_DATABRICKS_SERVICE_PRINCIPAL_TOKEN>")
@@ -420,10 +420,8 @@ st.markdown(
     
     /* Header styling */
     .main-header-wrapper {
-        padding: 0.5rem 1rem;
-        border: 2px solid #F47521;
+        padding: 0.3rem 0.75rem;
         background: linear-gradient(135deg, #1a1a1a 0%, #0B0B0B 100%);
-        box-shadow: 0 2px 8px rgba(244, 117, 33, 0.2);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -436,38 +434,43 @@ st.markdown(
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        font-size: 1.25rem;
+        font-size: 1rem;
         font-weight: 700;
         margin: 0;
         font-family: 'Lato', sans-serif;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
     
-    /* Chat message styling - elegant cards */
+    /* Chat message styling - compact cards */
     [data-testid="stChatMessage"] {
-        border-radius: 12px;
-        padding: 20px 24px;
-        margin-bottom: 16px;
-        max-width: 95%;
-        width: 100%;
+        border-radius: 0px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
         border: none;
         font-family: 'Lato', sans-serif;
+        font-size: 14px;
+    }
+    
+    [data-testid="stChatMessage"] p {
+        font-size: 14px !important;
+        line-height: 1.55 !important;
     }
     
     /* Mobile responsive - full width on small screens */
     @media (max-width: 768px) {
         [data-testid="stChatMessage"] {
             max-width: 100%;
-            padding: 16px 20px;
+            padding: 10px 14px;
         }
     }
     
-    /* User messages - Crunchyroll orange accent */
+    /* User messages - right aligned, orange */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
         background: linear-gradient(135deg, #F47521 0%, #FF8C42 100%) !important;
         margin-left: auto;
         margin-right: 0;
-        box-shadow: 0 4px 12px rgba(244, 117, 33, 0.4);
+        max-width: 75%;
+        text-align: right;
     }
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) div,
@@ -476,12 +479,12 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Assistant messages - dark with orange accent */
+    /* Assistant messages - left aligned, dark */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
         background-color: #1a1a1a !important;
         margin-right: auto;
         margin-left: 0;
-        border-left: 3px solid #F47521;
+        max-width: 90%;
     }
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p,
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) div,
@@ -489,25 +492,25 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* Chart expander styling - Crunchyroll theme */
+    /* Chart expander styling - compact, sharp */
     [data-testid="stExpander"] {
         background-color: #1a1a1a !important;
-        border: 2px solid #F47521 !important;
-        border-radius: 12px !important;
-        margin: 10px 0 !important;
+        border: none !important;
+        border-radius: 0px !important;
+        margin: 6px 0 !important;
     }
     
     [data-testid="stExpander"] summary {
-        background-color: #2a2a2a !important;
-        border-radius: 10px !important;
-        padding: 14px 18px !important;
-        font-weight: 700 !important;
-        font-size: 16px !important;
+        background-color: #1a1a1a !important;
+        border-radius: 0px !important;
+        padding: 8px 12px !important;
+        font-weight: 600 !important;
+        font-size: 12px !important;
         color: #F47521 !important;
     }
     
     [data-testid="stExpander"] summary:hover {
-        background-color: #3a3a3a !important;
+        background-color: #222222 !important;
     }
     
     [data-testid="stExpander"] div[role="button"] {
@@ -516,7 +519,8 @@ st.markdown(
     
     [data-testid="stExpander"] div[role="button"] p {
         color: #F47521 !important;
-        font-weight: 700 !important;
+        font-weight: 600 !important;
+        font-size: 12px !important;
     }
     
     [data-testid="stExpander"] svg {
@@ -525,7 +529,7 @@ st.markdown(
     
     .streamlit-expanderContent {
         background-color: #1a1a1a !important;
-        padding: 20px !important;
+        padding: 10px !important;
     }
     
     /* Dataframe styling */
@@ -533,34 +537,33 @@ st.markdown(
         background-color: #1a1a1a !important;
     }
     
-    /* Button styling - gradient */
+    /* Button styling - compact, sharp */
     .stButton>button {
         background: linear-gradient(135deg, #F47521 0%, #FF8C42 100%);
         color: white;
-        border-radius: 12px;
+        border-radius: 0px;
         border: none;
-        padding: 14px 28px;
-        font-weight: 700;
+        padding: 8px 16px;
+        font-weight: 600;
         font-family: 'Lato', sans-serif;
-        box-shadow: 0 4px 12px rgba(244, 117, 33, 0.3);
-        transition: all 0.3s ease;
+        font-size: 12px;
+        transition: all 0.2s ease;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
     .stButton>button:hover {
         background: linear-gradient(135deg, #FF8C42 0%, #F47521 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(244, 117, 33, 0.4);
     }
     
     /* Error message styling */
     .stAlert {
         background-color: #3a1810;
         color: #ffd4cc;
-        border: 2px solid #F47521;
-        border-radius: 12px;
-        padding: 16px;
+        border: none;
+        border-radius: 0px;
+        padding: 10px;
         font-family: 'Lato', sans-serif;
+        font-size: 12px;
     }
     
     /* Text colors for Crunchyroll theme */
@@ -569,19 +572,23 @@ st.markdown(
         font-family: 'Lato', sans-serif;
     }
     
+    h1 { font-size: 1.2rem !important; }
+    h2 { font-size: 1.1rem !important; }
+    h3 { font-size: 1rem !important; }
+    
     /* Code blocks */
     code {
         background-color: #2a2a2a !important;
         color: #F47521 !important;
-        padding: 0.25rem 0.5rem !important;
-        border-radius: 6px !important;
-        font-size: 0.9em !important;
+        padding: 0.15rem 0.4rem !important;
+        border-radius: 0px !important;
+        font-size: 0.8em !important;
     }
     
     /* Sidebar styling */
     [data-testid="stSidebar"] {
         background-color: #1a1a1a !important;
-        border-right: 2px solid #F47521 !important;
+        border-right: none !important;
     }
     
     [data-testid="stSidebar"] h1, 
@@ -595,21 +602,21 @@ st.markdown(
     
     /* Chat input styling */
     [data-testid="stChatInput"] {
-        border-color: #F47521 !important;
+        border-color: #333333 !important;
     }
     
     [data-testid="stChatInput"]:focus-within {
-        border-color: #FF8C42 !important;
-        box-shadow: 0 0 0 1px #F47521 !important;
+        border-color: #555555 !important;
+        box-shadow: none !important;
     }
     
     [data-testid="stChatInput"] textarea {
-        border-color: #F47521 !important;
+        border-color: #333333 !important;
     }
     
     [data-testid="stChatInput"] textarea:focus {
-        border-color: #FF8C42 !important;
-        box-shadow: 0 0 0 1px #F47521 !important;
+        border-color: #555555 !important;
+        box-shadow: none !important;
     }
     
     /* Spinner styling */
@@ -621,45 +628,46 @@ st.markdown(
         border-top-color: #F47521 !important;
     }
     
-    /* Trace event styling */
+    /* Trace event styling - compact, sharp */
     .trace-container {
-        margin: 8px 0;
-        padding: 12px 16px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        animation: slideIn 0.3s ease-out;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        margin: 3px 0;
+        padding: 6px 10px;
+        border-radius: 0px;
+        background: #141422;
+        border: none;
+        animation: slideIn 0.2s ease-out;
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
     }
     
-    .trace-step {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: white;
-        font-size: 14px;
+    .trace-header {
+        color: #F47521;
+        font-size: 11px;
         font-weight: 600;
+        letter-spacing: 0.2px;
     }
     
-    .trace-icon {
-        font-size: 18px;
-        animation: pulse 1.5s infinite;
+    .trace-subtitle {
+        color: #999999;
+        font-size: 10px;
+        margin-top: 1px;
+        font-style: italic;
     }
     
-    .trace-completed {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        box-shadow: 0 2px 8px rgba(56, 239, 125, 0.3);
+    .trace-tree {
+        margin-top: 3px;
+        padding-left: 4px;
     }
     
-    .trace-error {
-        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-        box-shadow: 0 2px 8px rgba(235, 51, 73, 0.3);
+    .trace-tree-line {
+        color: #bbbbbb;
+        font-size: 10px;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
     }
     
-    .trace-details {
-        font-size: 12px;
-        opacity: 0.95;
-        margin-top: 4px;
-        font-weight: 400;
+    .trace-tree-line b {
+        color: #ffffff;
     }
     
     @keyframes slideIn {
@@ -672,17 +680,6 @@ st.markdown(
             transform: translateY(0);
         }
     }
-    
-    @keyframes pulse {
-        0%, 100% { 
-            transform: scale(1);
-            opacity: 1;
-        }
-        50% { 
-            transform: scale(1.1);
-            opacity: 0.8;
-        }
-    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -690,7 +687,7 @@ st.markdown(
 
 # Helper function to render trace events
 def render_trace(trace_data: dict):
-    """Render a trace event in the UI with animated styling"""
+    """Render a trace event in the UI with tree-style formatting"""
     step = trace_data.get("step", "Processing")
     status = trace_data.get("status", "in_progress")
     message = trace_data.get("message", "")
@@ -699,44 +696,43 @@ def render_trace(trace_data: dict):
     # Use message if available, otherwise use details
     display_text = message if message else details
     
-    # Choose icon based on step and status
-    if status == "completed":
-        icon = "✅"
-        css_class = "trace-completed"
-    elif status == "in_progress":
-        # Choose icon based on step
-        if step == "init":
-            icon = "🧠"
-        elif step == "planning":
-            icon = "🔍"
-        elif step == "execution":
-            icon = "⚙️"
-        elif step == "synthesis":
-            icon = "🔗"
-        else:
-            icon = "⏳"
-        css_class = ""
-    else:
-        icon = "❌"
-        css_class = "trace-error"
+    if not display_text:
+        return ""
     
-    # Map step names to display names
-    step_names = {
-        "init": "Initializing",
-        "planning": "Planning",
-        "execution": "Executing",
-        "synthesis": "Synthesizing"
-    }
-    display_step = step_names.get(step, step.title())
+    # Split into lines for tree-style rendering
+    lines = display_text.split('\n')
+    
+    # First line is the header (contains emoji + title)
+    header = lines[0] if lines else step
+    subtitle = lines[1] if len(lines) > 1 else ""
+    detail_lines = lines[2:] if len(lines) > 2 else []
+    
+    # Build tree-formatted detail HTML
+    details_html = ""
+    if detail_lines:
+        formatted_lines = []
+        for line in detail_lines:
+            line = line.strip()
+            if not line:
+                continue
+            # Style tree characters
+            # Replace tree chars with styled versions
+            styled = line
+            styled = styled.replace('├─', '<span style="color:#F47521;">├─</span>')
+            styled = styled.replace('└─', '<span style="color:#F47521;">└─</span>')
+            styled = styled.replace('│', '<span style="color:#F47521;">│</span>')
+            # Bold key labels before colons
+            import re
+            styled = re.sub(r'^(<span[^>]*>[├└│─\s]+</span>\s*)([\w\s]+):', r'\1<b>\2:</b>', styled)
+            formatted_lines.append(f'<div class="trace-tree-line">{styled}</div>')
+        details_html = "\n".join(formatted_lines)
     
     # Render trace HTML
     trace_html = f"""
-    <div class="trace-container {css_class}">
-        <div class="trace-step">
-            <span class="trace-icon">{icon}</span>
-            <strong>{display_step}</strong>
-        </div>
-        {f'<div class="trace-details">{display_text}</div>' if display_text else ''}
+    <div class="trace-container">
+        <div class="trace-header">{header}</div>
+        {f'<div class="trace-subtitle">{subtitle}</div>' if subtitle else ''}
+        {f'<div class="trace-tree">{details_html}</div>' if details_html else ''}
     </div>
     """
     
@@ -771,12 +767,12 @@ with st.sidebar:
         }
         /* Individual chat item */
         .chat-item {
-            padding: 0.45rem 0.6rem;
-            border-radius: 6px;
+            padding: 0.35rem 0.5rem;
+            border-radius: 0px;
             cursor: pointer;
             color: #cccccc;
-            font-size: 0.85rem;
-            line-height: 1.35;
+            font-size: 0.75rem;
+            line-height: 1.3;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -789,14 +785,14 @@ with st.sidebar:
         /* Space badge */
         .space-badge {
             display: inline-block;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 700;
             color: #F47521;
             background: rgba(244, 117, 33, 0.12);
             border: 1px solid rgba(244, 117, 33, 0.3);
-            border-radius: 4px;
-            padding: 1px 5px;
-            margin-right: 5px;
+            border-radius: 0px;
+            padding: 1px 4px;
+            margin-right: 4px;
             vertical-align: middle;
         }
         /* Clear chat button */
@@ -804,9 +800,9 @@ with st.sidebar:
             background: transparent !important;
             color: #888888 !important;
             border: 1px solid #2a2a2a !important;
-            border-radius: 6px !important;
-            font-size: 0.8rem !important;
-            padding: 4px 10px !important;
+            border-radius: 0px !important;
+            font-size: 0.75rem !important;
+            padding: 3px 8px !important;
             box-shadow: none !important;
             font-weight: 400 !important;
             text-transform: none !important;
@@ -833,11 +829,11 @@ with st.sidebar:
         chats_placeholder.markdown(
             """
             <div style="padding:0.5rem 0;">
-                <div style="background:#2a2a2a;border-radius:4px;height:11px;width:85%;margin-bottom:10px;"></div>
-                <div style="background:#2a2a2a;border-radius:4px;height:11px;width:65%;margin-bottom:10px;"></div>
-                <div style="background:#2a2a2a;border-radius:4px;height:11px;width:75%;margin-bottom:10px;"></div>
-                <div style="background:#2a2a2a;border-radius:4px;height:11px;width:55%;margin-bottom:10px;"></div>
-                <div style="background:#2a2a2a;border-radius:4px;height:11px;width:70%;margin-bottom:10px;"></div>
+                <div style="background:#2a2a2a;height:10px;width:85%;margin-bottom:8px;"></div>
+                <div style="background:#2a2a2a;height:10px;width:65%;margin-bottom:8px;"></div>
+                <div style="background:#2a2a2a;height:10px;width:75%;margin-bottom:8px;"></div>
+                <div style="background:#2a2a2a;height:10px;width:55%;margin-bottom:8px;"></div>
+                <div style="background:#2a2a2a;height:10px;width:70%;margin-bottom:8px;"></div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1140,9 +1136,9 @@ else:
                             
                             # Add delay to show step-by-step progress
                             if status == "in_progress":
-                                time.sleep(0.3)  # Pause to show in-progress state
+                                pass  # No delay
                             elif status == "completed":
-                                time.sleep(0.5)  # Longer pause to show completion
+                                pass  # No delay
                         
                         # Check if it's the final response
                         elif "response" in chunk_obj:
@@ -1157,7 +1153,7 @@ else:
                 
                 # Keep traces visible for a moment before clearing
                 if active_traces:
-                    time.sleep(0.8)
+                    time.sleep(0.3)
                 
                 # Clear traces
                 trace_container.empty()
@@ -1194,26 +1190,30 @@ else:
                                     if fig is None:
                                         continue
                                     
-                                    # Apply Crunchyroll theme
+                                    # Apply Crunchyroll theme - compact, no border, sharp
                                     fig.update_layout(
-                                        plot_bgcolor="#1a1a1a",
-                                        paper_bgcolor="#1a1a1a",
-                                        font=dict(color="#ffffff", size=14, family="Lato, sans-serif"),
-                                        title_font=dict(color="#F47521", size=18, family="Lato, sans-serif", weight="bold"),
+                                        plot_bgcolor="#0B0B0B",
+                                        paper_bgcolor="#0B0B0B",
+                                        font=dict(color="#cccccc", size=11, family="Lato, sans-serif"),
+                                        title_font=dict(color="#F47521", size=13, family="Lato, sans-serif", weight="bold"),
+                                        margin=dict(l=40, r=20, t=35, b=35),
                                         xaxis=dict(
-                                            gridcolor="#333333",
-                                            zerolinecolor="#F47521",
-                                            color="#ffffff",
-                                            title_font=dict(size=14, color="#F47521", weight="bold"),
-                                            tickfont=dict(size=12, color="#ffffff"),
+                                            gridcolor="#222222",
+                                            zerolinecolor="#333333",
+                                            color="#cccccc",
+                                            title_font=dict(size=11, color="#F47521"),
+                                            tickfont=dict(size=10, color="#999999"),
+                                            showline=False,
                                         ),
                                         yaxis=dict(
-                                            gridcolor="#333333",
-                                            zerolinecolor="#F47521",
-                                            color="#ffffff",
-                                            title_font=dict(size=14, color="#F47521", weight="bold"),
-                                            tickfont=dict(size=12, color="#ffffff"),
+                                            gridcolor="#222222",
+                                            zerolinecolor="#333333",
+                                            color="#cccccc",
+                                            title_font=dict(size=11, color="#F47521"),
+                                            tickfont=dict(size=10, color="#999999"),
+                                            showline=False,
                                         ),
+                                        legend=dict(font=dict(size=10, color="#cccccc")),
                                     )
                                     
                                     st.plotly_chart(
