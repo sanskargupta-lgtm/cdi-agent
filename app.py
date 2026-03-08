@@ -258,32 +258,40 @@ DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "<YOUR_DATABRICKS_SERVICE_PRINC
 ENV = os.getenv("ENV", "prod")
 ENV = "dev"
 
-# Pick endpoint based on agent mode
-if AGENT_MODE == "chat":
-    ACTIVE_ENDPOINT_URL = CHAT_ENDPOINT_URL
-else:
-    ACTIVE_ENDPOINT_URL = ANALYST_ENDPOINT_URL
-
-print(f"[CONFIG] Agent mode: {AGENT_MODE}")
-print(f"[CONFIG] Endpoint: {ACTIVE_ENDPOINT_URL}")
-
-# Initialize single agent client
+# Initialize both agent clients
 some_token = get_user_token()
 print(f"Retrieved user token for agent client initialization: {some_token[:20] + '...' if some_token else 'Not found'}")
 
-agent = None
-client_initialized = False
+analyst_agent = None
 try:
-    agent = AgentEndpointClient(
-        endpoint_url=ACTIVE_ENDPOINT_URL,
+    analyst_agent = AgentEndpointClient(
+        endpoint_url=ANALYST_ENDPOINT_URL,
         access_token=some_token
     )
-    client_initialized = True
-    print(f"✅ Connected to {AGENT_MODE} agent: {ACTIVE_ENDPOINT_URL}")
+    print(f"✅ Analyst agent: {ANALYST_ENDPOINT_URL}")
 except Exception as e:
-    print(f"❌ Error initializing agent client: {e}")
-    import traceback
-    traceback.print_exc()
+    print(f"⚠️ Could not initialize analyst agent: {e}")
+
+chat_agent = None
+try:
+    chat_agent = AgentEndpointClient(
+        endpoint_url=CHAT_ENDPOINT_URL,
+        access_token=some_token
+    )
+    print(f"✅ Chat agent: {CHAT_ENDPOINT_URL}")
+except Exception as e:
+    print(f"⚠️ Could not initialize chat agent: {e}")
+
+client_initialized = (analyst_agent is not None) or (chat_agent is not None)
+if not client_initialized:
+    print(f"❌ No agent client initialized!")
+
+def get_active_agent():
+    """Get agent based on sidebar selection"""
+    selected = st.session_state.get("agent_mode_selection", "Analyst Agent")
+    if "Chat" in selected:
+        return chat_agent or analyst_agent
+    return analyst_agent or chat_agent
 
 # Initialize session manager
 session_manager = AppSessionManager(user_email)
@@ -820,6 +828,26 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
+    # --- Agent Mode Toggle ---
+    st.markdown(
+        '<div style="font-size:1.1rem;font-weight:700;color:#fff;padding:0.5rem 0 0.3rem 0;">Agent Mode</div>',
+        unsafe_allow_html=True,
+    )
+    st.radio(
+        "Select agent",
+        ["Analyst Agent", "Chat Agent"],
+        index=0,
+        key="agent_mode_selection",
+        label_visibility="collapsed"
+    )
+    selected_mode = st.session_state.get("agent_mode_selection", "Analyst Agent")
+    active_url = CHAT_ENDPOINT_URL if "Chat" in selected_mode else ANALYST_ENDPOINT_URL
+    st.markdown(
+        f'<div style="font-size:0.65rem;color:#888;padding:0 0 0.5rem 0;">↳ {active_url}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<hr style="border:0;border-top:1px solid #2a2a2a;margin:0.3rem 0 0.5rem 0;">', unsafe_allow_html=True)
+
     # Header
     st.markdown('<div class="past-chats-header">Past chats</div>', unsafe_allow_html=True)
 
@@ -1098,13 +1126,18 @@ else:
             try:
                 print("[UI] Starting streaming query")
                 
+                # Get active agent based on sidebar selection
+                active_agent = get_active_agent()
+                active_label = "Chat" if active_agent == chat_agent else "Analyst"
+                print(f"[UI] Using agent: {active_label}")
+                
                 # Track active traces and their order
                 active_traces = {}
                 trace_order = []
                 final_response = None
                 
                 # Stream response with trace events - pass session_id
-                for chunk in agent.query_stream(
+                for chunk in active_agent.query_stream(
                     prompt, 
                     user_email=user_email,
                     session_id=session_manager.session_id if session_manager else f"session_{user_email}"
