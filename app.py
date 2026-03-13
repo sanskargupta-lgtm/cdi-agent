@@ -246,7 +246,7 @@ AGENT_MODE = os.getenv("AGENT_MODE", "analyst")
 # Endpoint URLs
 ANALYST_ENDPOINT_URL = os.getenv(
     "ANALYST_ENDPOINT_URL",
-    "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_06032026/invocations"
+    "https://5110247008182190.0.gcp.databricks.com/serving-endpoints/analyst_agent_13032026/invocations"
 )
 CHAT_ENDPOINT_URL = os.getenv(
     "CHAT_ENDPOINT_URL",
@@ -986,14 +986,13 @@ else:
 
             # Display charts if present
             if message.get("charts"):
-                for idx, chart_info in enumerate(message["charts"]):
+                for chart_idx, chart_info in enumerate(message["charts"]):
                     chart_type = chart_info.get("chart_type", "unknown")
                     plotly_json = chart_info.get("plotly_json")
 
                     if plotly_json:
                         # Generate unique key for this chart
-                        msg_idx = st.session_state.messages.index(message)
-                        chart_key = f"chart_{msg_idx}_{idx}"
+                        chart_key = f"chart_{idx}_{chart_idx}"
 
                         try:
                             # Use plotly.io.from_json with skip_invalid to handle version incompatibilities
@@ -1048,56 +1047,41 @@ else:
                                 )
                         except Exception as e:
                             print(f"Error displaying chart: {e}")
-            
-            # Add PDF download button for assistant messages (skip welcome message)
-            if message["role"] == "assistant" and idx > 0 and message.get("content"):
-                # Add separator
-                st.markdown("---")
-                
-                # Get the corresponding user query (previous message)
-                user_query = ""
-                if idx > 0 and st.session_state.messages[idx-1].get("role") == "user":
-                    user_query = st.session_state.messages[idx-1].get("content", "")
-                
-                # Generate PDF download button
-                try:
-                    # Get conversation history up to this point
-                    conversation_history = []
-                    for i in range(0, idx-1, 2):
-                        if (i < len(st.session_state.messages) and 
-                            st.session_state.messages[i].get("role") == "user" and
-                            i+1 < len(st.session_state.messages)):
-                            conversation_history.append({
-                                "query": st.session_state.messages[i].get("content", ""),
-                                "answer": st.session_state.messages[i+1].get("content", "")
-                            })
-                    
-                    pdf_bytes = create_pdf_download_button(
-                        query=user_query,
-                        response_text=message.get("content", ""),
-                        charts=message.get("charts"),
-                        table_data=message.get("table_data"),
-                        sql_query=message.get("sql") if ENV == "dev" else None,
-                        user_email=user_email,
-                        conversation_history=conversation_history
-                    )
-                    
-                    timestamp = time.strftime("%Y%m%d_%H%M%S")
-                    filename = f"agent_report_{timestamp}.pdf"
-                    
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        st.download_button(
-                            label="📄 Download Report as PDF",
-                            data=pdf_bytes,
-                            file_name=filename,
-                            mime="application/pdf",
-                            help="Download comprehensive report with insights, charts, and conversation history",
-                            use_container_width=True,
-                            key=f"download_pdf_{idx}"
-                        )
-                except Exception as e:
-                    print(f"[PDF] Error generating PDF for message {idx}: {e}")
+
+        # Download button — OUTSIDE the chat_message block, directly below each assistant response
+        if message["role"] == "assistant" and idx > 0 and message.get("content") and len(message["content"].strip()) > 20:
+            try:
+                _q = ""
+                if idx > 0 and st.session_state.messages[idx - 1].get("role") == "user":
+                    _q = st.session_state.messages[idx - 1].get("content", "")
+                _hist = []
+                for _hi in range(0, idx - 1, 2):
+                    if (st.session_state.messages[_hi].get("role") == "user" and
+                            _hi + 1 < len(st.session_state.messages)):
+                        _hist.append({
+                            "query": st.session_state.messages[_hi].get("content", ""),
+                            "answer": st.session_state.messages[_hi + 1].get("content", "")
+                        })
+                _pdf = create_pdf_download_button(
+                    query=_q,
+                    response_text=message["content"],
+                    charts=message.get("charts"),
+                    table_data=message.get("table_data"),
+                    sql_query=message.get("sql") if ENV == "dev" else None,
+                    user_email=user_email,
+                    conversation_history=_hist
+                )
+                st.download_button(
+                    label="📄 Download Report",
+                    data=_pdf,
+                    file_name=f"agent_report_{time.strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf",
+                    use_container_width=False,
+                    key=f"dl_pdf_{idx}"
+                )
+            except Exception as _pe:
+                print(f"[PDF] Error: {_pe}")
+
 
     # Chat input
     if prompt := st.chat_input("What is your question?"):
@@ -1271,7 +1255,7 @@ else:
                             except Exception as e:
                                 st.error(f"Error displaying table: {e}")
                     
-                    # Store in session state (download button will be shown after rerun in message history)
+                    # Store in session state — bump pdf_version so sidebar button re-renders fresh
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": response_text,
@@ -1279,6 +1263,7 @@ else:
                         "table_data": table_data,
                         "sql": sql_query
                     })
+                    st.session_state["pdf_version"] = st.session_state.get("pdf_version", 0) + 1
                 else:
                     # No response received
                     error_msg = "⚠️ No response received from agent"
