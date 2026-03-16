@@ -16,4 +16,4 @@ uvicorn[standard]
 langgraph
 openai
 reportlab
-kaleido
+kaleido==0.2.1
